@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
-using FileSortingScript.Settings;
+using FileSortingScript.Display;
 
 namespace FileSortingScript.Directories
 {
@@ -15,7 +15,11 @@ namespace FileSortingScript.Directories
         public SourceDirectory(string sourceDirectoryPath, List<string> excludedExtensions)
             : base(sourceDirectoryPath)
         {
-            Console.WriteLine($"Set source directory to: {sourceDirectoryPath}... ");
+            SpecialPrinting.PrintColored(
+                $"Set source directory to: {sourceDirectoryPath}... ",
+                ConsoleColor.Yellow,
+                sourceDirectoryPath
+                );
 
             if (excludedExtensions == null)
                 throw new ArgumentNullException($"{nameof(excludedExtensions)} cannot be null in {nameof(SourceDirectory)} initialization");
@@ -27,7 +31,11 @@ namespace FileSortingScript.Directories
 
         private List<string> SetSourceFiles()
         {
-            Console.WriteLine("Retrieving source files... ");
+            SpecialPrinting.PrintColored(
+                "Retrieving source files... ",
+                ConsoleColor.Yellow
+                );
+
             List<string> sourceFiles = new List<string>();
             IEnumerable<string> files = Directory.EnumerateFiles(DirectoryPath);
 
@@ -38,6 +46,11 @@ namespace FileSortingScript.Directories
                 if (!ExcludedExtensions.Contains(extension))
                     sourceFiles.Add(file);
             }
+            SpecialPrinting.PrintColored(
+                $"Retrieved {sourceFiles.Count} source files", 
+                ConsoleColor.Green, 
+                sourceFiles.Count
+                );
 
             return sourceFiles;
         }

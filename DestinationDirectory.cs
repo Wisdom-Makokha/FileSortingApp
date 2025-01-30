@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
-using FileSortingScript.Settings;
+using FileSortingScript.Display;
 
 namespace FileSortingScript.Directories
 {
@@ -36,7 +36,12 @@ namespace FileSortingScript.Directories
         public DestinationDirectory(string destinationDirectoryPath, List<string> sourceFiles, Dictionary<string, string> extensionCategories, List<string> excludedEtensions)
             : base(destinationDirectoryPath)
         {
-            Console.WriteLine($"Set destination directory to {destinationDirectoryPath}... ");
+            SpecialPrinting.PrintColored(
+                $"Set destination directory to {destinationDirectoryPath}... ",
+                ConsoleColor.Yellow,
+                destinationDirectoryPath
+                );
+
             if (sourceFiles == null)
                 throw new ArgumentNullException($"{nameof(sourceFiles)} cannot be null in {nameof(DestinationDirectory)} initialization");
 
@@ -66,10 +71,19 @@ namespace FileSortingScript.Directories
         // check the destination directory for the 
         public void CheckDestinationSubDirectories()
         {
-            Console.WriteLine("Checking for the subdirectories in destination directory... ");
+            SpecialPrinting.PrintColored(
+                "Checking for the subdirectories in destination directory... ",
+                ConsoleColor.Yellow
+                );
+
             foreach (var subCategory in SubDirectories)
             {
-                Console.WriteLine($"\tChecked: {subCategory}");
+                SpecialPrinting.PrintColored(
+                    $"\tChecked: {subCategory}",
+                    ConsoleColor.Green,
+                    subCategory
+                    );
+
                 if (!Directory.Exists(subCategory))
                 {
                     try
@@ -89,8 +103,11 @@ namespace FileSortingScript.Directories
         // move each file into each subdirectory
         public void SortFiles()
         {
-            Console.WriteLine("Sorting files... ");
-            
+            SpecialPrinting.PrintColored(
+                "Sorting files... ",
+                ConsoleColor.Yellow
+                );
+
             string subDirectory;
             string destination;
 
@@ -103,7 +120,12 @@ namespace FileSortingScript.Directories
 
                     if (ExcludedExtensions.Contains(extension))
                     {
-                        Console.WriteLine($"\tSkipped file with excluded extension({extension}): {info.FullName}\n File not moved!\n");
+                        SpecialPrinting.PrintColored(
+                            $"\tSkipped file with excluded extension({extension}): {info.FullName}\n File not moved!\n",
+                            ConsoleColor.Yellow,
+                            extension, info.FullName
+                            );
+
                         continue;
                     }
                     else if (ExtensionCategories.TryGetValue(extension, out string? value))
@@ -121,20 +143,30 @@ namespace FileSortingScript.Directories
                     try
                     {
                         File.Move(file, destination);
-                        Console.WriteLine($"\t----Sorted\n{info.FullName} into\n->{subDirectory}");
+
+                        SpecialPrinting.PrintColored(
+                            $"--Sorted\n{info.FullName} into {subDirectory}",
+                            ConsoleColor.Green,
+                            info.FullName, subDirectory
+                            );
+
                         SortingStatistics[subDirectory] += 1;
                     }
                     catch (Exception ex)
                     {
                         FailedToMoveFiles!.Add(info.FullName, ex.Message);
-                        Console.WriteLine($"Error moving file: {file} \nin {nameof(SortFiles)} \nto {Path.Combine(DirectoryPath, subDirectory)}");
-                        Console.WriteLine(ex.Message);
+                        SpecialPrinting.PrintColored(
+                            $"Error moving file: {file} \nin {nameof(SortFiles)} \nto {Path.Combine(DirectoryPath, subDirectory)}",
+                            ConsoleColor.Red,
+                            nameof(SortFiles), Path.Combine(DirectoryPath, subDirectory)
+                            );
+                        SpecialPrinting.PrintColored(ex.Message, ConsoleColor.Red);
                     }
                 }
             }
             else
             {
-                Console.WriteLine("\tNo files to sort");
+                SpecialPrinting.PrintColored("\tNo files to sort", ConsoleColor.DarkYellow);
             }
 
             Console.WriteLine("\n");
@@ -143,37 +175,58 @@ namespace FileSortingScript.Directories
         // dialogue for adding new extensions and categories to the existing list
         public Dictionary<string, string> CheckUnrecognisedFileExtensions()
         {
-            Console.WriteLine("Checking for unrecongised file extensions... ");
+            SpecialPrinting.PrintColored(
+                "Checking for unrecongised file extensions... ",
+                ConsoleColor.Yellow
+                );
+
             Dictionary<string, string> newCategory = new Dictionary<string, string>();
             string exitChoice = "exit";
             string? readLine = "";
             int userPick;
 
-            if(UnrecognisedFileExtensions!.Count > 0)
+            if (UnrecognisedFileExtensions!.Count > 0)
             {
-                Console.WriteLine($"\t{UnrecognisedFileExtensions.Count} unrecognised file extensions in the files to be sorted");
+                SpecialPrinting.PrintColored(
+                    $"\t{UnrecognisedFileExtensions.Count} unrecognised file extensions in the files to be sorted",
+                    ConsoleColor.Green,
+                    UnrecognisedFileExtensions.Count
+                    );
 
                 foreach (var extension in UnrecognisedFileExtensions)
                 {
-                    Console.WriteLine($"\tWhich category would you like to add this extension -{extension}- to");
-                    Console.WriteLine($"\tType {exitChoice} to instead skip the choice");
-                    
+                    SpecialPrinting.PrintColored(
+                        $"\tWhich category would you like to add this extension -{extension}- to",
+                        ConsoleColor.Magenta, 
+                        extension
+                        );
+
+                    SpecialPrinting.PrintColored(
+                        $"\tType {exitChoice} to instead skip the choice", 
+                        ConsoleColor.Magenta, 
+                        exitChoice
+                        );
+
                     int i = 0;
-                    foreach(var category in SubDirectories)
+                    foreach (var category in SubDirectories)
                     {
-                        Console.WriteLine($"\t  {category.PadLeft(12)} - {i}");
+                        SpecialPrinting.PrintColored(
+                            $"\t  {category.PadLeft(12)} - {i}",
+                            ConsoleColor.Magenta,
+                            category.PadLeft(12), i
+                            );
                         i++;
                     }
 
                     while (true)
                     {
-                        Console.Write("\tChoice - ");
+                        SpecialPrinting.PrintColored("\tChoice - ", ConsoleColor.Blue);
 
                         readLine = Console.ReadLine();
 
                         if (string.IsNullOrEmpty(readLine))
                         {
-                            Console.WriteLine("\tNull or space values not accepted");
+                            SpecialPrinting.PrintColored("\tNull or space values not accepted", ConsoleColor.Magenta);
                         }
                         else if (readLine.Trim().ToLower() == exitChoice.ToLower())
                         {
@@ -186,60 +239,73 @@ namespace FileSortingScript.Directories
                                 if (userPick >= 0 || userPick < SubDirectories.Count)
                                 {
                                     newCategory.Add(extension, SubDirectories.ElementAt(userPick));
-                                    Console.WriteLine($"\tAdded extension category -> {extension}-{SubDirectories.ElementAt(userPick)}");
+                                    SpecialPrinting.PrintColored(
+                                        $"\tAdded extension category -> {extension}-{SubDirectories.ElementAt(userPick)}",
+                                        ConsoleColor.Green,
+                                        extension, SubDirectories.ElementAt(userPick)
+                                        );
+
                                     break;
                                 }
                                 else
                                 {
-                                    Console.WriteLine("\tEntered value exceeds allowed range");
+                                    SpecialPrinting.PrintColored("\tEntered value exceeds allowed range", ConsoleColor.Red);
                                 }
                             }
                             else
                             {
-                                Console.WriteLine("\tEnter an integer value for your pick");
+                                SpecialPrinting.PrintColored("\tEnter an integer value for your pick", ConsoleColor.Red);
                             }
                         }
                     }
                 }
-                
+
                 SortingStatistics.Add("Unrecognised Extensions", UnrecognisedFileExtensions.Count);
             }
             else
             {
-                Console.WriteLine("\tNo unrecognised file extensions in the list");
+                SpecialPrinting.PrintColored("\tNo unrecognised file extensions in the list", ConsoleColor.DarkYellow);
             }
 
             Console.WriteLine("\n");
 
-            return newCategory ;
+            return newCategory;
         }
 
-        // show 
+        // shows statistics on the process
         public void ShowSortingStatistics()
         {
-            Console.WriteLine("Showing statistics from the whole operation... ");
+            SpecialPrinting.PrintColored("Showing statistics from the whole operation... ", ConsoleColor.Yellow);
             foreach (var statEntry in SortingStatistics.Keys)
             {
-                Console.WriteLine($"\t{statEntry.PadLeft(12)} - {SortingStatistics[statEntry]}");
+                SpecialPrinting.PrintColored(
+                    $"\t{statEntry.PadLeft(12)} - {SortingStatistics[statEntry]}", 
+                    ConsoleColor.Green, 
+                    statEntry.PadLeft(12), SortingStatistics[statEntry]
+                    );
             }
             Console.WriteLine("\n");
         }
 
+        // shows files that failed to move
         public void CheckFailedMoves()
         {
-            Console.WriteLine("Checking files that failed to move... ");
+            SpecialPrinting.PrintColored("Checking files that failed to move... ", ConsoleColor.Yellow);
 
             if (FailedToMoveFiles!.Count > 0)
             {
                 foreach (var failedFile in FailedToMoveFiles.Keys)
                 {
-                    Console.WriteLine($"\tFile: {failedFile}\n\tReason for failure: {FailedToMoveFiles[failedFile]}");
+                    SpecialPrinting.PrintColored(
+                        $"\tFile: {failedFile}\n\tReason for failure: {FailedToMoveFiles[failedFile]}",
+                        ConsoleColor.DarkYellow,
+                        failedFile, FailedToMoveFiles[failedFile]);
                 }
                 SortingStatistics.Add("Failed Moves", FailedToMoveFiles.Count);
             }
             else
             {
-                Console.WriteLine("\tAll files succesfully moved");
+                SpecialPrinting.PrintColored("\tAll files succesfully moved", ConsoleColor.Green);
             }
             Console.WriteLine("\n");
         }
