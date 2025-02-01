@@ -10,30 +10,13 @@ namespace FileSortingScript.Directories
     internal class DestinationDirectory : FSPDirectory
     {
         // any unknown file extension will be stored here
-        private static HashSet<string>? UnrecognisedFileExtensions;
-        private static Dictionary<string, string>? FailedToMoveFiles;
+        public static HashSet<string>? UnrecognisedFileExtensions = new HashSet<string>();
+        public static Dictionary<string, string>? FailedToMoveFiles = new Dictionary<string, string>();
         private Dictionary<string, int> SortingStatistics;
-        public Dictionary<string, string> ExtensionCategories { get; set; }
         public List<string> SourceFiles { get; set; }
-        public List<string> ExcludedExtensions { get; set; }
+        Settings.Settings AppSettings { get; set; }
 
-        private HashSet<string> SubDirectories
-        {
-            get
-            {
-                HashSet<string> result = new HashSet<string>();
-
-                foreach (var subCategory in ExtensionCategories.Values)
-                {
-                    result.Add($"{subCategory}");
-                }
-                result.Add("Other");
-
-                return result;
-            }
-        }
-
-        public DestinationDirectory(string destinationDirectoryPath, List<string> sourceFiles, Dictionary<string, string> extensionCategories, List<string> excludedEtensions)
+        public DestinationDirectory(string destinationDirectoryPath, List<string> sourceFiles, Settings.Settings settings)
             : base(destinationDirectoryPath)
         {
             SpecialPrinting.PrintColored(
@@ -45,38 +28,27 @@ namespace FileSortingScript.Directories
             if (sourceFiles == null)
                 throw new ArgumentNullException($"{nameof(sourceFiles)} cannot be null in {nameof(DestinationDirectory)} initialization");
 
+            AppSettings = settings;
+
             SourceFiles = sourceFiles;
-
-            if (extensionCategories == null)
-                throw new ArgumentNullException($"{nameof(extensionCategories)} cannot be null in {nameof(DestinationDirectory)} initialization");
-
-            ExtensionCategories = extensionCategories;
-
-            if (excludedEtensions == null)
-                throw new ArgumentNullException($"{nameof(excludedEtensions)} cannot be null in {nameof(DestinationDirectory)} initialization");
-
-            ExcludedExtensions = excludedEtensions;
 
             // initialise sorting statistics and add each subdirectory and set file number to zero
             SortingStatistics = new Dictionary<string, int>();
-            foreach (var subDirectory in SubDirectories)
+            foreach (var subDirectory in AppSettings.Subdirectories)
             {
                 SortingStatistics.Add(subDirectory, 0);
             }
-
-            UnrecognisedFileExtensions = new HashSet<string>();
-            FailedToMoveFiles = new Dictionary<string, string>();
         }
 
-        // check the destination directory for the 
+        // check the destination directory for the subdirectories that need to be there
         public void CheckDestinationSubDirectories()
         {
             SpecialPrinting.PrintColored(
-                "Checking for the subdirectories in destination directory... ",
+                "Checking for the AppSettings.Subdirectories in destination directory... ",
                 ConsoleColor.Yellow
                 );
 
-            foreach (var subCategory in SubDirectories)
+            foreach (var subCategory in AppSettings.Subdirectories)
             {
                 SpecialPrinting.PrintColored(
                     $"\tChecked: {subCategory}",
@@ -118,7 +90,7 @@ namespace FileSortingScript.Directories
                     FileInfo info = new FileInfo(file);
                     var extension = Path.GetExtension(file);
 
-                    if (ExcludedExtensions.Contains(extension))
+                    if (AppSettings.ExcludedExtensions!.Contains(extension))
                     {
                         SpecialPrinting.PrintColored(
                             $"\tSkipped file with excluded extension({extension}): {info.FullName}\n File not moved!\n",
@@ -128,7 +100,7 @@ namespace FileSortingScript.Directories
 
                         continue;
                     }
-                    else if (ExtensionCategories.TryGetValue(extension, out string? value))
+                    else if (AppSettings.ExtensionCategories!.TryGetValue(extension, out string? value))
                     {
                         subDirectory = value;
                     }
@@ -163,6 +135,24 @@ namespace FileSortingScript.Directories
                         SpecialPrinting.PrintColored(ex.Message, ConsoleColor.Red);
                     }
                 }
+
+                if(SortingStatistics.ContainsKey("Unrecognised Extensions"))
+                {
+                    SortingStatistics["Unrecognised Extensions"] += UnrecognisedFileExtensions!.Count;
+                }
+                else
+                {
+                    SortingStatistics.Add("Unrecognised Extensions", UnrecognisedFileExtensions!.Count);
+                }
+
+                if (SortingStatistics.ContainsKey("Failed Moves"))
+                {
+                    SortingStatistics["Failed Moves"] += UnrecognisedFileExtensions!.Count;
+                }
+                else
+                {
+                    SortingStatistics.Add("Failed Moves", FailedToMoveFiles!.Count);
+                }
             }
             else
             {
@@ -172,110 +162,10 @@ namespace FileSortingScript.Directories
             Console.WriteLine("\n");
         }
 
-        // dialogue for adding new extensions and categories to the existing list
-        public Dictionary<string, string> CheckUnrecognisedFileExtensions()
-        {
-            SpecialPrinting.PrintColored(
-                "Checking for unrecongised file extensions... ",
-                ConsoleColor.Yellow
-                );
-
-            Dictionary<string, string> newCategory = new Dictionary<string, string>();
-            string exitChoice = "exit";
-            string? readLine = "";
-            int userPick;
-
-            if (UnrecognisedFileExtensions!.Count > 0)
-            {
-                SpecialPrinting.PrintColored(
-                    $"\t{UnrecognisedFileExtensions.Count} unrecognised file extensions in the files to be sorted",
-                    ConsoleColor.Green,
-                    UnrecognisedFileExtensions.Count
-                    );
-
-                foreach (var extension in UnrecognisedFileExtensions)
-                {
-                    SpecialPrinting.PrintColored(
-                        $"\tWhich category would you like to add this extension -{extension}- to",
-                        ConsoleColor.Magenta, 
-                        extension
-                        );
-
-                    SpecialPrinting.PrintColored(
-                        $"\tType {exitChoice} to instead skip the choice", 
-                        ConsoleColor.Magenta, 
-                        exitChoice
-                        );
-
-                    int i = 0;
-                    foreach (var category in SubDirectories)
-                    {
-                        SpecialPrinting.PrintColored(
-                            $"\t  {category.PadLeft(12)} - {i}",
-                            ConsoleColor.Magenta,
-                            category.PadLeft(12), i
-                            );
-                        i++;
-                    }
-
-                    while (true)
-                    {
-                        SpecialPrinting.PrintColored("\tChoice - ", ConsoleColor.Blue);
-
-                        readLine = Console.ReadLine();
-
-                        if (string.IsNullOrEmpty(readLine))
-                        {
-                            SpecialPrinting.PrintColored("\tNull or space values not accepted", ConsoleColor.Magenta);
-                        }
-                        else if (readLine.Trim().ToLower() == exitChoice.ToLower())
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            if (int.TryParse(readLine, out userPick))
-                            {
-                                if (userPick >= 0 || userPick < SubDirectories.Count)
-                                {
-                                    newCategory.Add(extension, SubDirectories.ElementAt(userPick));
-                                    SpecialPrinting.PrintColored(
-                                        $"\tAdded extension category -> {extension}-{SubDirectories.ElementAt(userPick)}",
-                                        ConsoleColor.Green,
-                                        extension, SubDirectories.ElementAt(userPick)
-                                        );
-
-                                    break;
-                                }
-                                else
-                                {
-                                    SpecialPrinting.PrintColored("\tEntered value exceeds allowed range", ConsoleColor.Red);
-                                }
-                            }
-                            else
-                            {
-                                SpecialPrinting.PrintColored("\tEnter an integer value for your pick", ConsoleColor.Red);
-                            }
-                        }
-                    }
-                }
-
-                SortingStatistics.Add("Unrecognised Extensions", UnrecognisedFileExtensions.Count);
-            }
-            else
-            {
-                SpecialPrinting.PrintColored("\tNo unrecognised file extensions in the list", ConsoleColor.DarkYellow);
-            }
-
-            Console.WriteLine("\n");
-
-            return newCategory;
-        }
-
         // shows statistics on the process
         public void ShowSortingStatistics()
         {
-            SpecialPrinting.PrintColored("Showing statistics from the whole operation... ", ConsoleColor.Yellow);
+            SpecialPrinting.PrintColored("Sorting stats ", ConsoleColor.Yellow);
             foreach (var statEntry in SortingStatistics.Keys)
             {
                 SpecialPrinting.PrintColored(
@@ -287,27 +177,5 @@ namespace FileSortingScript.Directories
             Console.WriteLine("\n");
         }
 
-        // shows files that failed to move
-        public void CheckFailedMoves()
-        {
-            SpecialPrinting.PrintColored("Checking files that failed to move... ", ConsoleColor.Yellow);
-
-            if (FailedToMoveFiles!.Count > 0)
-            {
-                foreach (var failedFile in FailedToMoveFiles.Keys)
-                {
-                    SpecialPrinting.PrintColored(
-                        $"\tFile: {failedFile}\n\tReason for failure: {FailedToMoveFiles[failedFile]}",
-                        ConsoleColor.DarkYellow,
-                        failedFile, FailedToMoveFiles[failedFile]);
-                }
-                SortingStatistics.Add("Failed Moves", FailedToMoveFiles.Count);
-            }
-            else
-            {
-                SpecialPrinting.PrintColored("\tAll files succesfully moved", ConsoleColor.Green);
-            }
-            Console.WriteLine("\n");
-        }
     }
 }

@@ -14,7 +14,7 @@ namespace FileSortingScript.Display
 
             foreach ( var interpolatedValue in interpolatedValues )
             {
-                string valueString = interpolatedValue.ToString();
+                string valueString = interpolatedValue.ToString()!;
                 int valueIndex = text.IndexOf(valueString, currentIndex);
 
                 if(valueIndex >= 0 )

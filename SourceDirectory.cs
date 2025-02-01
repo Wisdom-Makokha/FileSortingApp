@@ -10,9 +10,11 @@ namespace FileSortingScript.Directories
     internal class SourceDirectory : FSPDirectory
     {
         public List<string> SourceFiles { get; set; }
-        public List<string> ExcludedExtensions { get; set; }
 
-        public SourceDirectory(string sourceDirectoryPath, List<string> excludedExtensions)
+        Settings.Settings AppSettings { get; set; }
+        //public List<string> ExcludedExtensions { get; set; }
+
+        public SourceDirectory(string sourceDirectoryPath, Settings.Settings settings)
             : base(sourceDirectoryPath)
         {
             SpecialPrinting.PrintColored(
@@ -21,10 +23,12 @@ namespace FileSortingScript.Directories
                 sourceDirectoryPath
                 );
 
-            if (excludedExtensions == null)
-                throw new ArgumentNullException($"{nameof(excludedExtensions)} cannot be null in {nameof(SourceDirectory)} initialization");
+            AppSettings = settings;
 
-            ExcludedExtensions = excludedExtensions;
+            //if (excludedExtensions == null)
+            //    throw new ArgumentNullException($"{nameof(excludedExtensions)} cannot be null in {nameof(SourceDirectory)} initialization");
+
+            //ExcludedExtensions = excludedExtensions;
             SourceFiles = SetSourceFiles();
 
         }
@@ -43,7 +47,7 @@ namespace FileSortingScript.Directories
             {
                 var extension = Path.GetExtension(file);
 
-                if (!ExcludedExtensions.Contains(extension))
+                if (!AppSettings.ExcludedExtensions!.Contains(extension))
                     sourceFiles.Add(file);
             }
             SpecialPrinting.PrintColored(

@@ -29,6 +29,10 @@ namespace FileSortingScript.Settings
         public string? DestinationFolder { get; set; }
         public List<string>? ExcludedExtensions { get; set; }
         public Dictionary<string, string>? ExtensionCategories { get; set; }
+        public HashSet<string> Subdirectories => new HashSet<string>(
+            ExtensionCategories!.Values.Select(subCategory => $"{subCategory}")
+            .Concat(new[] { "Other" })
+            );
 
         // add new extensions to exclude
         public void AddExcludedExtensions(List<string> excludedExtensions)
@@ -57,18 +61,19 @@ namespace FileSortingScript.Settings
             else
                 throw new ArgumentNullException($"{nameof(categories)} cannot be null in {nameof(AddExtensionsCategories)}");
         }
+
+        // loads the settings from a file or sets the default settings in case of an issue
         private static Settings LoadSettings()
         {
-            try
+            var json = File.ReadAllText(SettingsFilePath);
+            if (string.IsNullOrEmpty(json))
             {
-                var json = File.ReadAllText(SettingsFilePath);
-                if (string.IsNullOrEmpty(json))
-                    return new Settings()
-                    {
-                        SourceFolder = "C:\\Users\\Dev Ark\\Downloads",
-                        DestinationFolder = "S:\\Pictures\\Temp",
-                        ExcludedExtensions = new List<string> { ".tmp", ".bak", ".log", ".crdownload" },
-                        ExtensionCategories = new Dictionary<string, string>
+                return new Settings()
+                {
+                    SourceFolder = "C:\\Users\\Dev Ark\\Downloads",
+                    DestinationFolder = "S:\\Pictures\\Temp",
+                    ExcludedExtensions = new List<string> { ".tmp", ".bak", ".log", ".crdownload" },
+                    ExtensionCategories = new Dictionary<string, string>
                         {
                             { ".flac", "Audio" },
                             { ".doc", "Documents" },
@@ -98,16 +103,18 @@ namespace FileSortingScript.Settings
                             { ".msi", "Software" },
                             { ".jar", "Compressed" }
                         }
-                    };
-                else
-                    return JsonConvert.DeserializeObject<Settings>(json) ??
-                        new Settings()
+                };
+            }
+            else
+            {
+                return JsonConvert.DeserializeObject<Settings>(json) ??
+                    new Settings()
+                    {
+                        SourceFolder = "C:\\Users\\Dev Ark\\Downloads",
+                        DestinationFolder = "S:\\Pictures\\Temp",
+                        ExcludedExtensions = new List<string> { ".tmp", ".bak", ".log", ".crdownload" },
+                        ExtensionCategories = new Dictionary<string, string>
                         {
-                            SourceFolder = "C:\\Users\\Dev Ark\\Downloads",
-                            DestinationFolder = "S:\\Pictures\\Temp",
-                            ExcludedExtensions = new List<string> { ".tmp", ".bak", ".log", ".crdownload" },
-                            ExtensionCategories = new Dictionary<string, string>
-                            {
                                 { ".flac", "Audio" },
                                 { ".doc", "Documents" },
                                 { ".7z", "Compressed" },
@@ -135,49 +142,10 @@ namespace FileSortingScript.Settings
                                 { ".mp3", "Audio" },
                                 { ".msi", "Software" },
                                 { ".jar", "Compressed" }
-                            }
-                        };
+                        }
+                    };
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                return new Settings()
-                {
-                    SourceFolder = "C:\\Users\\Dev Ark\\Downloads",
-                    DestinationFolder = "S:\\Pictures\\Temp",
-                    ExcludedExtensions = new List<string> { ".tmp", ".bak", ".log", ".crdownload" },
-                    ExtensionCategories = new Dictionary<string, string>
-                    {
-                        { ".flac", "Audio" },
-                        { ".doc", "Documents" },
-                        { ".7z", "Compressed" },
-                        { ".ps1", "Scripts" },
-                        { ".xlsx", "Documents" },
-                        { ".jfif", "Pics" },
-                        { ".docx", "Documents" },
-                        { ".bat", "Scripts" },
-                        { ".exe", "Software" },
-                        { ".jpeg", "Pics" },
-                        { ".png", "Pics" },
-                        { ".pptx", "Documents" },
-                        { ".gif", "GIFs" },
-                        { ".rar", "Compressed" },
-                        { ".mp4", "Videos" },
-                        { ".zip", "Compressed" },
-                        { ".avi", "Videos" },
-                        { ".gz", "Compressed" },
-                        { ".txt", "Documents" },
-                        { ".jpg", "Pics" },
-                        { ".wav", "Audio" },
-                        { ".pdf", "Documents" },
-                        { ".mkv", "Videos" },
-                        { ".bmp", "Pics" },
-                        { ".mp3", "Audio" },
-                        { ".msi", "Software" },
-                        { ".jar", "Compressed" }
-                    }
-                };
-            }
+
         }
 
         public void SaveSettings()
@@ -193,78 +161,41 @@ namespace FileSortingScript.Settings
             }
         }
 
-        public void CheckSourceFolderNull()
+        public void ResetSettings()
         {
-            if (string.IsNullOrEmpty(SourceFolder))
+            SourceFolder = "C:\\Users\\Dev Ark\\Downloads";
+            DestinationFolder = "S:\\Pictures\\Temp";
+            ExcludedExtensions = new List<string> { ".tmp", ".bak", ".log", ".crdownload" };
+            ExtensionCategories = new Dictionary<string, string>
             {
-                Console.WriteLine($"{nameof(SourceFolder)} is null or empty. Set to default value - 'C:\\Users\\Dev Ark\\Downloads'");
-                SourceFolder = "C:\\Users\\Dev Ark\\Downloads";
-            }
-        }
-
-        public void CheckDestinationFolderNull()
-        {
-            if (string.IsNullOrEmpty(DestinationFolder))
-            {
-                Console.WriteLine($"{nameof(DestinationFolder)} is null or empty. Set to default value - 'S:\\Pictures\\Temp'");
-                SourceFolder = "S:\\Pictures\\Temp";
-            }
-        }
-
-        public void CheckExtensionCategoriesNull()
-        {
-            if (ExtensionCategories == null || ExtensionCategories.Count == 0)
-            {
-                Console.WriteLine($"{nameof(ExtensionCategories)} is null");
-                ExtensionCategories = new Dictionary<string, string>
-                    {
-                        { ".flac", "Audio" },
-                        { ".doc", "Documents" },
-                        { ".7z", "Compressed" },
-                        { ".ps1", "Scripts" },
-                        { ".xlsx", "Documents" },
-                        { ".jfif", "Pics" },
-                        { ".docx", "Documents" },
-                        { ".bat", "Scripts" },
-                        { ".exe", "Software" },
-                        { ".jpeg", "Pics" },
-                        { ".png", "Pics" },
-                        { ".pptx", "Documents" },
-                        { ".gif", "GIFs" },
-                        { ".rar", "Compressed" },
-                        { ".mp4", "Videos" },
-                        { ".zip", "Compressed" },
-                        { ".avi", "Videos" },
-                        { ".gz", "Compressed" },
-                        { ".txt", "Documents" },
-                        { ".jpg", "Pics" },
-                        { ".wav", "Audio" },
-                        { ".pdf", "Documents" },
-                        { ".mkv", "Videos" },
-                        { ".bmp", "Pics" },
-                        { ".mp3", "Audio" },
-                        { ".msi", "Software" },
-                        { ".jar", "Compressed" }
-                    };
-            }
-
-        }
-
-        public void CheckExcludedExtensionsNull()
-        {
-            if (ExcludedExtensions == null)
-            {
-                Console.WriteLine($"{nameof(ExcludedExtensions)} is null");
-                ExcludedExtensions = new List<string> { ".tmp", ".bak", ".log", ".crdownload" };
-            }
-        }
-
-        public void CheckAllSettings()
-        {
-            CheckSourceFolderNull();
-            CheckExcludedExtensionsNull();
-            CheckDestinationFolderNull();
-            CheckExtensionCategoriesNull();
+                { ".flac", "Audio" },
+                { ".doc", "Documents" },
+                { ".7z", "Compressed" },
+                { ".ps1", "Scripts" },
+                { ".xlsx", "Documents" },
+                { ".jfif", "Pics" },
+                { ".docx", "Documents" },
+                { ".bat", "Scripts" },
+                { ".exe", "Software" },
+                { ".jpeg", "Pics" },
+                { ".png", "Pics" },
+                { ".pptx", "Documents" },
+                { ".gif", "GIFs" },
+                { ".rar", "Compressed" },
+                { ".mp4", "Videos" },
+                { ".zip", "Compressed" },
+                { ".avi", "Videos" },
+                { ".gz", "Compressed" },
+                { ".txt", "Documents" },
+                { ".jpg", "Pics" },
+                { ".wav", "Audio" },
+                { ".pdf", "Documents" },
+                { ".mkv", "Videos" },
+                { ".bmp", "Pics" },
+                { ".mp3", "Audio" },
+                { ".msi", "Software" },
+                { ".jar", "Compressed" }
+            };
         }
     }
 }

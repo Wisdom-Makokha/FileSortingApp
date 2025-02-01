@@ -1,0 +1,30 @@
+﻿interface interaction
+- opens program
+- welcome page
+- list of options
+	- sort files (default)
+        - sorts files
+    - check settings
+        - check destination directory
+            - show
+            - set 
+        - check source directory
+            - show
+            - set
+        - check extensions and categories
+            - show
+            - add
+            - edit
+            - remove
+        - check excluded extensions
+            - show
+            - add
+            - remove
+    - view problems when sorting the files
+        - check problems during sorting
+            - show
+            - deal with the issues
+        - check unrecognised file extensions
+            - show
+            - add to extension categories
+    - exit

@@ -19,5 +19,16 @@ namespace FileSortingScript.Directories
             else
                 throw new ArgumentException($"Provided directory path: {directoryPath} is invalid");
         }
+
+        public void SetDirectoryPath(string directoryPath)
+        {
+            if (string.IsNullOrEmpty(directoryPath))
+                throw new ArgumentNullException(nameof(directoryPath), "No directory path provided");
+
+            if (Directory.Exists(directoryPath))
+                DirectoryPath = directoryPath;
+            else
+                throw new ArgumentException($"Provided directory path: {directoryPath} is invalid");
+        }
     }
 }
